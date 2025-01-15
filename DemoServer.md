@@ -117,7 +117,13 @@ $ ./server run --host-address=192.168.1.99
 
 ## Les commandes
 
-- <kbd>P</kbd>: Add a local player
+- <kbd>P</kbd>: add a local player
+
+- <kbd>H</kbd>: display historical path
+
+- <kbd>R</kbd>: reset game (same maze, remove all players)
+
+- <kbd>C</kbd>: clear historical path
 
 - <kbd>escape</kbd>: Quit
 

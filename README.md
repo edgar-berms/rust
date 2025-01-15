@@ -9,6 +9,8 @@ Votre objectif est de sortir rapidement du labyrinthe avant que...
 
 ## Changements
 
+* `Wed Jan 15 23:54:07 CET 2025`:
+    * Ajout de la gestion de collision des joueurs (ajout de l'erreur `CannotPassThroughOpponent`)
 * `Thu Nov 28 19:05:34 CET 2024`:
     * On garantit désormais qu'un indice est toujours envoyé avec la vue courante et que le
       challenge met en pause l'envoi de vue.
@@ -83,7 +85,7 @@ Quand une partie commence, les joueurs sont propulsés dans le labyrinthe sans i
    Cependant, de temps en temps, à la place d'un RadarView, le serveur peut vous envoyer un challenge.
    Il y a deux types de challenges:
     * `SecretSumModulo` où l'objectif pour le joueur est de calculer la somme des derniers _secrets_ qui ont été envoyés
-      aux membres de son équipe, le tout modulo un nombre qui vous est envoyé au moment du challenge (NB: si au moment 
+      aux membres de son équipe, le tout modulo un nombre qui vous est envoyé au moment du challenge (NB: si au moment
       du challenge, un joueur n'a jamais reçu de `secret`, il faut le compter comme ayant un secret de valeur `0`).
 
       Exemple:
@@ -102,7 +104,14 @@ Quand une partie commence, les joueurs sont propulsés dans le labyrinthe sans i
       que le joueur bouge ou sinon, il périra dans d'atroces souffrances. Pendant que ce challenge est en cours, le
       joueur reçoit des indices qu'il peut transmettre à ces équipiers pour le retrouver.
 
-7. Chaque joueur formule l'action qu'il souhaite effectuer. Le plus simple est un déplacement vers une case libre.
+7. Chaque joueur formule l'action qu'il souhaite effectuer.
+
+   Le plus simple est un déplacement vers une case libre de tout autre joueur ou monstre.
+
+   Un joueur peut aussi se déplacer sur une case où se trouve un joueur de son équipe ou l'arrivée.
+
+   Un joueur ne peut pas se déplacer sur une case où se trouve un joueur d'une équipe adverse sauf si c'est l'arrivée.
+
 8. La cible est identifiée sur le [RadarView](./encodings/RadarView.md) et dès lors que le joueur est dessus, le serveur
    considère qu'il a trouvé la sortie.
 
@@ -257,17 +266,17 @@ Tous les messages sont de la forme:
 Tous ces messages sont transmis sous la forme d'une
 sérialisation [JSON](https://fr.wikipedia.org/wiki/JavaScript_Object_Notation).
 
-| Nom du message          | Champs du message                                                                                       | Exemple                                                                                                                             | Commentaires                              |
-|-------------------------|---------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------|
-| `RegisterTeam`          | `name: String`                                                                                          | `{"RegisterTeam":{"name":"curious_broccoli"}}`                                                                                      |                                           | 
-| `RegisterTeamResult`    | `enum { Ok { expected_players: u8, registration_token: String }, Err(RegistrationError) }`              | `{"RegisterTeamResult":{"Ok":{"expected_players":3,"registration_token":"SECRET"}}}`<br>`{"SubscribeResult":{"Err":"InvalidName"}}` |                                           | 
-| `SubscribePlayer`       | `name: String, registration_token: String`                                                              | `{"SubscribePlayer":{"name":"flower_power","registration_token":"SECRET"}}`                                                         |                                           | 
-| `SubscribePlayerResult` | `enum { Ok, Err(RegistrationError) }`                                                                   | `{"SubscribePlayerResult":{"Err":"InvalidName"}}`                                                                                   |                                           | 
-| `RadarView`             | `Sring`                                                                                                 | `{"RadarView":"sgvSBg8SifDVCMXKiq"}`                                                                                                | Le radar est fourni dans un format encodé |
-| `Hint`                  | `enum { RelativeCompass { angle: f32 }, GridSize { columns: u32, rows: u32 }, Secret(u64), SOSHelper }` | `{"Hint":{"RelativeCompass":{"angle":12.0}}}`                                                                                       |                                           |
-| `Action`                | `enum { MoveTo(RelativeDirection), SolveChallenge { answer: String } }`                                 | `{"Action":{"MoveTo":"Right"}}`                                                                                                     |                                           | 
-| `ActionError`           | `enum { CannotPassThroughWall, NoRunningChallenge, SolveChallengeFirst, InvalidChallengeSolution }`     | `{"ActionError":"CannotPassThroughWall"}`                                                                                           | D'autres erreurs sont à venir pour le SOS | 
-| `Challenge`             | `enum { SecretSumModulo(u64), SOS }`                                                                    | `{"Challenge":{"SecretSumModulo":42}}`                                                                                              |                                           |
+| Nom du message          | Champs du message                                                                                                              | Exemple                                                                                                                             | Commentaires                              |
+|-------------------------|--------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------|
+| `RegisterTeam`          | `name: String`                                                                                                                 | `{"RegisterTeam":{"name":"curious_broccoli"}}`                                                                                      |                                           | 
+| `RegisterTeamResult`    | `enum { Ok { expected_players: u8, registration_token: String }, Err(RegistrationError) }`                                     | `{"RegisterTeamResult":{"Ok":{"expected_players":3,"registration_token":"SECRET"}}}`<br>`{"SubscribeResult":{"Err":"InvalidName"}}` |                                           | 
+| `SubscribePlayer`       | `name: String, registration_token: String`                                                                                     | `{"SubscribePlayer":{"name":"flower_power","registration_token":"SECRET"}}`                                                         |                                           | 
+| `SubscribePlayerResult` | `enum { Ok, Err(RegistrationError) }`                                                                                          | `{"SubscribePlayerResult":{"Err":"InvalidName"}}`                                                                                   |                                           | 
+| `RadarView`             | `Sring`                                                                                                                        | `{"RadarView":"sgvSBg8SifDVCMXKiq"}`                                                                                                | Le radar est fourni dans un format encodé |
+| `Hint`                  | `enum { RelativeCompass { angle: f32 }, GridSize { columns: u32, rows: u32 }, Secret(u64), SOSHelper }`                        | `{"Hint":{"RelativeCompass":{"angle":12.0}}}`                                                                                       |                                           |
+| `Action`                | `enum { MoveTo(RelativeDirection), SolveChallenge { answer: String } }`                                                        | `{"Action":{"MoveTo":"Right"}}`                                                                                                     |                                           | 
+| `ActionError`           | `enum { CannotPassThroughWall, CannotPassThroughOpponent, NoRunningChallenge, SolveChallengeFirst, InvalidChallengeSolution }` | `{"ActionError":"CannotPassThroughWall"}`                                                                                           | D'autres erreurs sont à venir pour le SOS | 
+| `Challenge`             | `enum { SecretSumModulo(u64), SOS }`                                                                                           | `{"Challenge":{"SecretSumModulo":42}}`                                                                                              |                                           |
 
 ### Séquencement des messages
 
