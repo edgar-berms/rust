@@ -82,9 +82,22 @@ Quand une partie commence, les joueurs sont propulsés dans le labyrinthe sans i
 
    Cependant, de temps en temps, à la place d'un RadarView, le serveur peut vous envoyer un challenge.
    Il y a deux types de challenges:
-    * `SecretSumModulo` où l'objectif pour le joueur est de calculer la somme des _secrets_ qui ont été envoyés aux
-      membres de son équipe, le tout modulo un nombre qui vous est envoyé au moment du challenge (NB: si au moment du
-      challenge, un joueur n'a jamais reçu de `secret`, il faut le compter comme ayant un secret de valeur `0`).
+    * `SecretSumModulo` où l'objectif pour le joueur est de calculer la somme des derniers _secrets_ qui ont été envoyés
+      aux membres de son équipe, le tout modulo un nombre qui vous est envoyé au moment du challenge (NB: si au moment 
+      du challenge, un joueur n'a jamais reçu de `secret`, il faut le compter comme ayant un secret de valeur `0`).
+
+      Exemple:
+        * Joueur1 reçoit la valeur 11
+        * Joueur3 reçoit la valeur 31
+        * Joueur3 reçoit la valeur 32 (remplace la précédente valeur connue)
+
+      alors, SecretSum(modulo 10) vaut (11+0+32) % 10 soit la valeur 3 (Joueur2 vaut pour `0` car il n'a jamais reçu de
+      valeur)
+
+      NB: Si le SecretSum vous est demandé et que le serveur envoie une mise à jour de valeur à l'un des autres joueurs
+      avant que vous ayez répondu, alors le serveur vous rejettera votre réponse (car périmée) mais il suffit alors de
+      juste refaire le calcul avec la valeur à jour des différents joueurs.
+
     * `SOS` où l'objectif sera que l'un des équipiers du joueur vienne le secourir. Attention, il ne faut surtout pas
       que le joueur bouge ou sinon, il périra dans d'atroces souffrances. Pendant que ce challenge est en cours, le
       joueur reçoit des indices qu'il peut transmettre à ces équipiers pour le retrouver.
