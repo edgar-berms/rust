@@ -1,3 +1,8 @@
 *.drawio
 *.xcf
 *.bkp
+
+
+# Added by cargo
+
+/target
