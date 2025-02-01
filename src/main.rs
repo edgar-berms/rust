@@ -1,10 +1,13 @@
 mod radar;
+mod text;
+
+use text::{encode, decode};
 
 use base64::{engine::general_purpose::STANDARD, Engine};
 use radar::{encode_passages, encode_radar_items, decode_passages, decode_radar_items, Passage, RadarItem};
 fn main() {
 
-    // TODO edgar à enlever plus tard (test)
+    //TODO edgar à enlever plus tard (test)
     let horizontal_passages = vec![
         Passage::Undefined, Passage::Open, Passage::Wall,
         Passage::Wall, Passage::Open, Passage::Undefined,
@@ -51,4 +54,15 @@ fn main() {
     println!("Decoded horizontal passages: {:?}", horizontal_passages_decoded);
     println!("Decoded vertical passages: {:?}", vertical_passages_decoded);
     println!("Decoded radar items: {:?}", radar_items_decoded);
+
+    let data = b"Connais tu les 3 C Caca Clope Cafe";
+    let encoded = encode(data);
+    println!("Encoded: {}", encoded);
+
+    let test = "q29UBMfPCYb0DsbSzxmGmYbdienHy2eGq2XVCguGq2fMzq";
+
+    match decode(test) {
+        Ok(decoded) => println!("Decoded: {:?}", String::from_utf8(decoded).unwrap()),
+        Err(e) => println!("Error: {}", e),
+    }
 }
