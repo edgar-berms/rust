@@ -1,12 +1,44 @@
 mod radar;
 mod text;
-use text::{encode, decode};
+//use text::{encode, decode};
 mod maze;
 use maze::{encode_maze, decode_maze};
-use std::net::TcpStream;
-use std::io::{Write, Read};
-use base64::{engine::general_purpose::STANDARD, Engine};
-use radar::{encode_passages, encode_radar_items, decode_passages, decode_radar_items, Passage, RadarItem};
+//use std::net::TcpStream;
+//use std::io::{Write, Read};
+//use base64::{engine::general_purpose::STANDARD, Engine};
+//use radar::{encode_passages, encode_radar_items, decode_passages, decode_radar_items, Passage, RadarItem};
+
+fn generate_large_maze(nx: u16, ny: u16) -> (u16, u16, Vec<bool>, Vec<bool>) {
+    // Création des murs horizontaux et verticaux
+    let mut horizontal_walls = vec![false; (ny + 1) as usize * nx as usize];
+    let mut vertical_walls = vec![false; (nx + 1) as usize * ny as usize];
+
+    // Remplissage des murs horizontaux (chaque ligne a un mur au bord)
+    for x in 0..nx {
+        horizontal_walls[x as usize] = true; // Haut du labyrinthe
+        horizontal_walls[((ny) * nx + x) as usize] = true; // Bas du labyrinthe
+    }
+
+    // Remplissage des murs verticaux (chaque colonne a un mur au bord)
+    for y in 0..ny {
+        vertical_walls[(y * (nx + 1)) as usize] = true; // Mur de gauche
+        vertical_walls[(y * (nx + 1) + nx) as usize] = true; // Mur de droite
+    }
+
+    // Ajout de murs internes de manière aléatoire ou structurée (exemple simple ici)
+    for x in 1..nx {
+        for y in 1..ny {
+            // Ajout de murs verticaux et horizontaux à des endroits choisis
+            if (x + y) % 2 == 0 {
+                horizontal_walls[(y * nx + x) as usize] = true;
+                vertical_walls[(y * (nx + 1) + x) as usize] = true;
+            }
+        }
+    }
+
+    (nx, ny, horizontal_walls, vertical_walls)
+}
+
 
 fn main() {
 
@@ -58,28 +90,13 @@ fn main() {
     // println!("Decoded vertical passages: {:?}", vertical_passages_decoded);
     // println!("Decoded radar items: {:?}", radar_items_decoded);
 
-    let nx = 3;  
-    let ny = 3;
+    let nx = 5; // Largeur du labyrinthe
+    let ny = 5; // Hauteur du labyrinthe
 
-    // Murs horizontaux pour le labyrinthe 2x2 = 8 murs
-    // Murs verticaux pour le labyrinthe 2x2 = 8 murs
-    // Murs horizontaux pour le labyrinthe 3x3 = 16 murs
-    // Murs verticaux pour le labyrinthe 3x3 = 16 murs
+    // Générer un labyrinthe 25x25
+    let (nx, ny, horizontal_walls, vertical_walls) = generate_large_maze(nx, ny);
 
-    let horizontal_walls = vec![
-        false, false, false, false,
-        false, true, true, false,
-        false, true, true, false,
-        false, false, false, false,
-    ];
-
-    let vertical_walls = vec![
-        false, true, false, false,
-        true, true, true, true,
-        false, false, true, false,
-        true, true, true, true,
-    ];
-
+    // Encodage du labyrinthe
     let encoded_maze = encode_maze(nx, ny, &horizontal_walls, &vertical_walls);
     println!("Encoded Maze: {}", encoded_maze);
 
@@ -97,42 +114,4 @@ fn main() {
     //     Err(e) => println!("Error: {}", e),
     // }
 
-    // Adresse et port du serveur
-    let ip = "127.0.0.1";  // localhost
-    let port = 8778;        // port du serveur
-
-    // Essayer de se connecter au serveur
-    let mut stream = match TcpStream::connect(format!("{}:{}", ip, port)) {
-        Ok(stream) => stream,
-        Err(_) => {
-            eprintln!("Impossible de se connecter au serveur sur {}:{}", ip, port);
-            return;
-        }
-    };
-
-    println!("Connecté au serveur sur {}:{}", ip, port);
-
-    // Message à envoyer au serveur
-    let message = "Salut serveur !";
-
-    // Envoi du message
-    match stream.write_all(message.as_bytes()) {
-        Ok(_) => println!("Message envoyé : {}", message),
-        Err(_) => {
-            eprintln!("Erreur lors de l'envoi du message");
-            return;
-        }
-    }
-
-    // Buffer pour lire la réponse du serveur
-    let mut buffer = [0; 1024];
-    match stream.read(&mut buffer) {
-        Ok(size) => {
-            let response = String::from_utf8_lossy(&buffer[..size]);
-            println!("Réponse du serveur : {}", response);
-        }
-        Err(_) => {
-            eprintln!("Erreur de lecture de la réponse du serveur");
-        }
-    }
 }
