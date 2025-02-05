@@ -1,8 +1,7 @@
-[package]
-name = "sauve_qui_peut"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+members = [
+    "common",
+    "client",
+    "server",
+]
 
-[dependencies]
-base64 = "0.21"
-byteorder = "1"
