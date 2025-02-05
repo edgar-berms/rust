@@ -1,4 +1,7 @@
 mod radar;
+mod text;
+
+use text::{encode, decode};
 
 mod maze;
 
@@ -84,4 +87,15 @@ fn main() {
 
     let encoded_maze = "AwADAAZgTy8=";
     decode_maze(encoded_maze);
+
+    let data = b"Connais tu les 3 C Caca Clope Cafe";
+    let encoded = encode(data);
+    println!("Encoded: {}", encoded);
+
+    let test = "q29UBMfPCYb0DsbSzxmGmYbdienHy2eGq2XVCguGq2fMzq";
+
+    match decode(test) {
+        Ok(decoded) => println!("Decoded: {:?}", String::from_utf8(decoded).unwrap()),
+        Err(e) => println!("Error: {}", e),
+    }
 }
