@@ -58,30 +58,30 @@ fn main() {
     // println!("Decoded vertical passages: {:?}", vertical_passages_decoded);
     // println!("Decoded radar items: {:?}", radar_items_decoded);
 
-    // let nx = 3;  
-    // let ny = 3;
+    let nx = 3;  
+    let ny = 3;
 
-    // // Murs horizontaux pour le labyrinthe 2x2 = 8 murs
-    // // Murs verticaux pour le labyrinthe 2x2 = 8 murs
-    // // Murs horizontaux pour le labyrinthe 3x3 = 16 murs
-    // // Murs verticaux pour le labyrinthe 3x3 = 16 murs
+    // Murs horizontaux pour le labyrinthe 2x2 = 8 murs
+    // Murs verticaux pour le labyrinthe 2x2 = 8 murs
+    // Murs horizontaux pour le labyrinthe 3x3 = 16 murs
+    // Murs verticaux pour le labyrinthe 3x3 = 16 murs
 
-    // let horizontal_walls = vec![
-    //     false, false, false, false,
-    //     false, true, true, false,
-    //     false, true, true, false,
-    //     false, false, false, false,
-    // ];
+    let horizontal_walls = vec![
+        false, false, false, false,
+        false, true, true, false,
+        false, true, true, false,
+        false, false, false, false,
+    ];
 
-    // let vertical_walls = vec![
-    //     false, true, false, false,
-    //     true, true, true, true,
-    //     false, false, true, false,
-    //     true, true, true, true,
-    // ];
+    let vertical_walls = vec![
+        false, true, false, false,
+        true, true, true, true,
+        false, false, true, false,
+        true, true, true, true,
+    ];
 
-    // let encoded_maze = encode_maze(nx, ny, &horizontal_walls, &vertical_walls);
-    // println!("Encoded Maze: {}", encoded_maze);
+    let encoded_maze = encode_maze(nx, ny, &horizontal_walls, &vertical_walls);
+    println!("Encoded Maze: {}", encoded_maze);
 
     // let encoded_maze = "AwADAAZgTy8=";
     // decode_maze(encoded_maze);
