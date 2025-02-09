@@ -8,37 +8,6 @@ use maze::{encode_maze, decode_maze};
 //use base64::{engine::general_purpose::STANDARD, Engine};
 //use radar::{encode_passages, encode_radar_items, decode_passages, decode_radar_items, Passage, RadarItem};
 
-fn generate_large_maze(nx: u16, ny: u16) -> (u16, u16, Vec<bool>, Vec<bool>) {
-    // Création des murs horizontaux et verticaux
-    let mut horizontal_walls = vec![false; (ny + 1) as usize * nx as usize];
-    let mut vertical_walls = vec![false; (nx + 1) as usize * ny as usize];
-
-    // Remplissage des murs horizontaux (chaque ligne a un mur au bord)
-    for x in 0..nx {
-        horizontal_walls[x as usize] = true; // Haut du labyrinthe
-        horizontal_walls[((ny) * nx + x) as usize] = true; // Bas du labyrinthe
-    }
-
-    // Remplissage des murs verticaux (chaque colonne a un mur au bord)
-    for y in 0..ny {
-        vertical_walls[(y * (nx + 1)) as usize] = true; // Mur de gauche
-        vertical_walls[(y * (nx + 1) + nx) as usize] = true; // Mur de droite
-    }
-
-    // Ajout de murs internes de manière aléatoire ou structurée (exemple simple ici)
-    for x in 1..nx {
-        for y in 1..ny {
-            // Ajout de murs verticaux et horizontaux à des endroits choisis
-            if (x + y) % 2 == 0 {
-                horizontal_walls[(y * nx + x) as usize] = true;
-                vertical_walls[(y * (nx + 1) + x) as usize] = true;
-            }
-        }
-    }
-
-    (nx, ny, horizontal_walls, vertical_walls)
-}
-
 
 fn main() {
 
@@ -90,17 +59,17 @@ fn main() {
     // println!("Decoded vertical passages: {:?}", vertical_passages_decoded);
     // println!("Decoded radar items: {:?}", radar_items_decoded);
 
-    let nx = 5; // Largeur du labyrinthe
-    let ny = 5; // Hauteur du labyrinthe
+    // let nx = 5; // Largeur du labyrinthe
+    // let ny = 5; // Hauteur du labyrinthe
 
-    // Générer un labyrinthe 25x25
-    let (nx, ny, horizontal_walls, vertical_walls) = generate_large_maze(nx, ny);
+    // // Générer un labyrinthe 25x25
+    // let (nx, ny, horizontal_walls, vertical_walls) = generate_large_maze(nx, ny);
 
-    // Encodage du labyrinthe
-    let encoded_maze = encode_maze(nx, ny, &horizontal_walls, &vertical_walls);
-    println!("Encoded Maze: {}", encoded_maze);
+    // // Encodage du labyrinthe
+    // let encoded_maze = encode_maze(nx, ny, &horizontal_walls, &vertical_walls);
+    // println!("Encoded Maze: {}", encoded_maze);
 
-    // let encoded_maze = "AwADAAZgTy8=";
+    // let encoded_maze = "BQAFAPqKovyHWvWs";
     // decode_maze(encoded_maze);
 
     // let data = b"Connais tu les 3 C Caca Clope Cafe";

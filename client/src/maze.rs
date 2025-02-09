@@ -57,7 +57,7 @@ pub fn decode_maze(encoded: &str) {
     println!("Murs verticaux: {:?}", v_walls);
 }
 
-fn decode_wall_bits(walls_bytes: &[u8]) -> Vec<u8> {
+pub fn decode_wall_bits(walls_bytes: &[u8]) -> Vec<u8> {
     let mut decoded = Vec::new();
     for &byte in walls_bytes {
         for i in 0..8 {
@@ -65,4 +65,35 @@ fn decode_wall_bits(walls_bytes: &[u8]) -> Vec<u8> {
         }
     }
     decoded
+}
+
+pub fn generate_large_maze(nx: u16, ny: u16) -> (u16, u16, Vec<bool>, Vec<bool>) {
+    // Création des murs horizontaux et verticaux
+    let mut horizontal_walls = vec![false; (ny + 1) as usize * nx as usize];
+    let mut vertical_walls = vec![false; (nx + 1) as usize * ny as usize];
+
+    // Remplissage des murs horizontaux (chaque ligne a un mur au bord)
+    for x in 0..nx {
+        horizontal_walls[x as usize] = true; // Haut du labyrinthe
+        horizontal_walls[((ny) * nx + x) as usize] = true; // Bas du labyrinthe
+    }
+
+    // Remplissage des murs verticaux (chaque colonne a un mur au bord)
+    for y in 0..ny {
+        vertical_walls[(y * (nx + 1)) as usize] = true; // Mur de gauche
+        vertical_walls[(y * (nx + 1) + nx) as usize] = true; // Mur de droite
+    }
+
+    // Ajout de murs internes de manière aléatoire ou structurée (exemple simple ici)
+    for x in 1..nx {
+        for y in 1..ny {
+            // Ajout de murs verticaux et horizontaux à des endroits choisis
+            if (x + y) % 2 == 0 {
+                horizontal_walls[(y * nx + x) as usize] = true;
+                vertical_walls[(y * (nx + 1) + x) as usize] = true;
+            }
+        }
+    }
+
+    (nx, ny, horizontal_walls, vertical_walls)
 }
