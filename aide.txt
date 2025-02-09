@@ -1,0 +1,15 @@
+Installer NetCat
+
+Tester la co :
+echo {"Connect": {"team_name": "Rustaceans"}} | ncat localhost 8778
+
+Créer l'équipe :
+echo '{"type": "RegisterTeam", "team_name": "Les BG", "player_count": 3}' | ncat -v localhost 8778
+
+Rejoindre l'équipe :
+echo '{"type": "JoinTeam", "access_code": "1234", "player_name": "Alice"}' | ncat -v localhost 8778
+echo '{"type": "JoinTeam", "access_code": "1234", "player_name": "Bob"}' | ncat -v localhost 8778
+echo '{"type": "JoinTeam", "access_code": "1234", "player_name": "Charlie"}' | ncat -v localhost 8778
+
+Renvoyer les membres d'une équipe :
+echo '{"type": "ViewTeam", "team_name": "Les BG"}' | ncat -v localhost 8778

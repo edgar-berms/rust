@@ -7,13 +7,14 @@ use serde_json::json;
 use rand::Rng;
 
 mod model;
-use model::{Message, RegisterTeam, JoinTeam};
+use model::{Message, RegisterTeam, JoinTeam, ViewTeam};
 
 #[derive(Debug)]
 struct Team {
     name: String,
     access_code: String,
     players: Vec<String>,
+    player_count: u8,
 }
 
 fn main() -> std::io::Result<()> {
@@ -68,6 +69,7 @@ fn handle_client(mut stream: TcpStream, teams: Arc<Mutex<HashMap<String, Team>>>
     let response = match message {
         Message::RegisterTeam(data) => register_team(data, &teams),
         Message::JoinTeam(data) => join_team(data, &teams),
+        Message::ViewTeam(data) => view_team(data, &teams),
     };
 
     writeln!(stream, "{}", response).unwrap();
@@ -88,6 +90,7 @@ fn register_team(data: RegisterTeam, teams: &Arc<Mutex<HashMap<String, Team>>>) 
         name: data.team_name.clone(),
         access_code: access_code.clone(),
         players: Vec::new(),
+        player_count: data.player_count,
     });
 
     json!({
@@ -101,6 +104,12 @@ fn join_team(data: JoinTeam, teams: &Arc<Mutex<HashMap<String, Team>>>) -> Strin
     let mut teams = teams.lock().unwrap();
     for team in teams.values_mut() {
         if team.access_code == data.access_code {
+            if team.players.len() as u8 >= team.player_count {
+                return json!({
+                    "status": "ERROR",
+                    "message": "L'équipe est déjà complète"
+                }).to_string();
+            }
             if team.players.contains(&data.player_name) {
                 return json!({
                     "status": "ERROR",
@@ -120,3 +129,21 @@ fn join_team(data: JoinTeam, teams: &Arc<Mutex<HashMap<String, Team>>>) -> Strin
         "message": "Code d'accès invalide"
     }).to_string()
 }
+
+fn view_team(data: ViewTeam, teams: &Arc<Mutex<HashMap<String, Team>>>) -> String {
+    let teams = teams.lock().unwrap();
+    
+    if let Some(team) = teams.get(&data.team_name) {
+        return json!({
+            "status": "OK",
+            "team_name": team.name,
+            "players": team.players
+        }).to_string();
+    }
+
+    json!({
+        "status": "ERROR",
+        "message": "Équipe non trouvée"
+    }).to_string()
+}
+
