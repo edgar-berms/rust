@@ -1,9 +1,9 @@
-use tokio::net::{TcpListener, TcpStream};
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use serde::{Serialize, Deserialize};
-use serde_json;
+use std::net::{TcpListener, TcpStream};
+use std::io::{BufRead, BufReader, Write};
+use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Deserialize)]
+#[serde(tag = "type")] // Permet de différencier les types de messages
 enum Message {
     Connect { team_name: String },
     Register { team_code: String },
@@ -11,34 +11,79 @@ enum Message {
     Challenge { answer: i32 },
 }
 
-async fn handle_client(stream: TcpStream) {
-    let (reader, mut writer) = stream.into_split();
-    let mut reader = BufReader::new(reader).lines();
+#[derive(Debug, Serialize)]
+struct ServerResponse {
+    status: String,
+    message: String,
+}
 
-    while let Ok(Some(line)) = reader.next_line().await {
-        let line = line.trim().trim_matches('\''); // Supprime les espaces et caractères parasites
-        println!("Reçu brut: {:?}", line);
+fn handle_client(mut stream: TcpStream) {
+    let peer_addr = stream.peer_addr().unwrap();
+    println!("✅ Nouvelle connexion acceptée depuis {}", peer_addr);
 
-        match serde_json::from_str::<Message>(line) {
-            Ok(message) => {
-                println!("Message reçu: {:?}", message);
-                let response = serde_json::to_string(&"Message reçu").unwrap();
-                let _ = writer.write_all(response.as_bytes()).await;
+    let mut reader = BufReader::new(stream.try_clone().unwrap()); // 🔥 Clone du stream
+    let mut writer = &mut stream; // ✅ Permet un emprunt mutable séparé pour l'écriture
+
+    for line in reader.lines() {
+        match line {
+            Ok(msg) => {
+                println!("📥 Reçu brut: {:?}", msg);
+
+                // ✅ Nettoyage du message JSON
+                let cleaned_msg = msg.trim_matches(|c| c == '\'' || c == ' '); 
+                println!("🔍 JSON nettoyé: {:?}", cleaned_msg);
+
+                // ✅ Parser le JSON proprement
+                let parsed: Result<Message, serde_json::Error> = serde_json::from_str(cleaned_msg);
+                match parsed {
+                    Ok(message) => {
+                        println!("✅ Message reçu: {:?}", message);
+
+                        // Réponse au client
+                        let response = ServerResponse {
+                            status: "OK".to_string(),
+                            message: "Message bien reçu".to_string(),
+                        };
+                        let response_json = serde_json::to_string(&response).unwrap();
+
+                        if let Err(e) = writeln!(writer, "{}\n", response_json) {
+                            println!("⚠️ Erreur lors de l'envoi de la réponse: {}", e);
+                        }
+                    }
+                    Err(e) => {
+                        println!("❌ Erreur de parsing JSON: {}", e);
+                        let error_response = ServerResponse {
+                            status: "ERROR".to_string(),
+                            message: "Format JSON invalide".to_string(),
+                        };
+                        let error_json = serde_json::to_string(&error_response).unwrap();
+                        writeln!(writer, "{}\n", error_json).unwrap();
+                    }
+                }
             }
             Err(e) => {
-                println!("Erreur de parsing JSON: {}", e);
+                println!("⚠️ Erreur lors de la lecture du message: {}", e);
             }
         }
     }
+
+    println!("🚀 Fermeture de la connexion avec {}", peer_addr);
 }
 
-#[tokio::main]
-async fn main() {
-    let listener = TcpListener::bind("127.0.0.1:8778").await.unwrap();
-    println!("Serveur en écoute sur localhost:8778");
 
-    while let Ok((stream, _)) = listener.accept().await {
-        println!("Nouvelle connexion acceptée");
-        tokio::spawn(handle_client(stream));
+
+fn main() {
+    let listener = TcpListener::bind("127.0.0.1:8778").expect("🔥 Impossible de démarrer le serveur !");
+    println!("🚀 Serveur en écoute sur localhost:8778");
+
+    for stream in listener.incoming() {
+        match stream {
+            Ok(stream) => {
+                std::thread::spawn(|| handle_client(stream));
+            }
+            Err(e) => {
+                println!("⚠️ Erreur de connexion : {}", e);
+            }
+        }
     }
 }
