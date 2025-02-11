@@ -177,6 +177,9 @@ fn view_team(data: ViewTeam, teams: &Arc<Mutex<HashMap<String, Team>>>) -> Strin
 
 fn get_maze(maze: &Arc<Mutex<Maze>>) -> String {
     let maze = maze.lock().unwrap();
+
+    maze.display();
+    
     json!({
         "status": "OK",
         "maze": maze.to_string()

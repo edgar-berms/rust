@@ -13,3 +13,6 @@ echo '{"type": "JoinTeam", "access_code": "1234", "player_name": "Charlie"}' | n
 
 Afficher les membres d'une équipe :
 echo '{"type": "ViewTeam", "team_name": "Les BG"}' | ncat -v localhost 8778
+
+Afficher le labyrinthe :
+echo '{"type": "GetMaze"}' | ncat 127.0.0.1 8778
