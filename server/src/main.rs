@@ -11,6 +11,9 @@ use rand::Rng;
 mod model;
 use model::{JoinTeam, Message, RegisterTeam, ViewTeam};
 
+mod maze;
+use maze::Maze;
+
 #[derive(Debug)]
 struct Team {
     name: String,
@@ -27,7 +30,11 @@ fn main() -> std::io::Result<()> {
 
     let teams = Arc::new(Mutex::new(HashMap::<String, Team>::new()));
 
+    let maze = Arc::new(Mutex::new(Maze::new(10, 10)));
+    maze.lock().unwrap().place_exit();
+
     let teams_clone = Arc::clone(&teams);
+    let maze_clone = Arc::clone(&maze);
     thread::spawn(move || {
         loop {
             thread::sleep(Duration::from_secs(10));
@@ -48,8 +55,9 @@ fn main() -> std::io::Result<()> {
         match stream {
             Ok(stream) => {
                 let teams = Arc::clone(&teams);
+                let maze = Arc::clone(&maze);
                 thread::spawn(move || {
-                    handle_client(stream, teams);
+                    handle_client(stream, teams, maze);
                 });
             }
             Err(e) => eprintln!("❌ Erreur de connexion: {}", e),
@@ -58,7 +66,7 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 
-fn handle_client(mut stream: TcpStream, teams: Arc<Mutex<HashMap<String, Team>>>) {
+fn handle_client(mut stream: TcpStream, teams: Arc<Mutex<HashMap<String, Team>>>, maze: Arc<Mutex<Maze>>) {
     let client_addr = stream.peer_addr().unwrap();
     println!("✅ Nouvelle connexion acceptée depuis {}", client_addr);
 
@@ -88,6 +96,7 @@ fn handle_client(mut stream: TcpStream, teams: Arc<Mutex<HashMap<String, Team>>>
         Message::RegisterTeam(data) => register_team(data, &teams),
         Message::JoinTeam(data) => join_team(data, &teams),
         Message::ViewTeam(data) => view_team(data, &teams),
+        Message::GetMaze => get_maze(&maze),
     };
 
     writeln!(stream, "{}", response).unwrap();
@@ -163,5 +172,13 @@ fn view_team(data: ViewTeam, teams: &Arc<Mutex<HashMap<String, Team>>>) -> Strin
     json!({
         "status": "ERROR",
         "message": "Équipe introuvable"
+    }).to_string()
+}
+
+fn get_maze(maze: &Arc<Mutex<Maze>>) -> String {
+    let maze = maze.lock().unwrap();
+    json!({
+        "status": "OK",
+        "maze": maze.to_string()
     }).to_string()
 }

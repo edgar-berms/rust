@@ -11,5 +11,5 @@ echo '{"type": "JoinTeam", "access_code": "1234", "player_name": "Alice"}' | nca
 echo '{"type": "JoinTeam", "access_code": "1234", "player_name": "Bob"}' | ncat -v localhost 8778
 echo '{"type": "JoinTeam", "access_code": "1234", "player_name": "Charlie"}' | ncat -v localhost 8778
 
-Renvoyer les membres d'une équipe :
+Afficher les membres d'une équipe :
 echo '{"type": "ViewTeam", "team_name": "Les BG"}' | ncat -v localhost 8778

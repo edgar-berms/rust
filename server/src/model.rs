@@ -6,6 +6,7 @@ pub enum Message {
     RegisterTeam(RegisterTeam),
     JoinTeam(JoinTeam),
     ViewTeam(ViewTeam),
+    GetMaze
 }
 
 #[derive(Debug, Serialize, Deserialize)]
