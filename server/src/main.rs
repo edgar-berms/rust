@@ -2,32 +2,53 @@ use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use rand::Rng;
 
 mod model;
-use model::{Message, RegisterTeam, JoinTeam, ViewTeam};
+use model::{JoinTeam, Message, RegisterTeam, ViewTeam};
 
 #[derive(Debug)]
 struct Team {
     name: String,
     access_code: String,
     players: Vec<String>,
-    player_count: u8,
+    max_players: u8,
+    created_at: Instant,
 }
 
 fn main() -> std::io::Result<()> {
     let listener = TcpListener::bind("127.0.0.1:8778")?;
     println!("🚀 Serveur en écoute sur localhost:8778");
+    println!("🚀 En attente d'équipe");
 
-    let teams = Arc::new(Mutex::new(HashMap::new()));
+    let teams = Arc::new(Mutex::new(HashMap::<String, Team>::new()));
+
+    let teams_clone = Arc::clone(&teams);
+    thread::spawn(move || {
+        loop {
+            thread::sleep(Duration::from_secs(10));
+            let mut teams = teams_clone.lock().unwrap();
+            teams.retain(|_, team| {
+                let elapsed = team.created_at.elapsed().as_secs();
+                if elapsed < 180 {
+                    true
+                } else {
+                    println!("🕒 Timeout: Suppression de l'équipe {}", team.name);
+                    false
+                }
+            });
+        }
+    });
 
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
                 let teams = Arc::clone(&teams);
-                std::thread::spawn(move || {
+                thread::spawn(move || {
                     handle_client(stream, teams);
                 });
             }
@@ -47,11 +68,9 @@ fn handle_client(mut stream: TcpStream, teams: Arc<Mutex<HashMap<String, Team>>>
         return;
     }
 
-    // Nettoyage du JSON
     let cleaned_data = raw_data.trim_matches(|c: char| c == '\'' || c.is_whitespace());
     println!("📥 JSON reçu: {:?}", cleaned_data);
 
-    // Tentative de parsing du JSON
     let message: Message = match serde_json::from_str(cleaned_data) {
         Ok(msg) => msg,
         Err(e) => {
@@ -65,7 +84,6 @@ fn handle_client(mut stream: TcpStream, teams: Arc<Mutex<HashMap<String, Team>>>
         }
     };
 
-    // Traitement du message reçu
     let response = match message {
         Message::RegisterTeam(data) => register_team(data, &teams),
         Message::JoinTeam(data) => join_team(data, &teams),
@@ -90,13 +108,15 @@ fn register_team(data: RegisterTeam, teams: &Arc<Mutex<HashMap<String, Team>>>) 
         name: data.team_name.clone(),
         access_code: access_code.clone(),
         players: Vec::new(),
-        player_count: data.player_count,
+        max_players: data.player_count,
+        created_at: Instant::now(),
     });
 
     json!({
         "status": "OK",
         "message": "Équipe enregistrée",
-        "access_code": access_code
+        "access_code": access_code,
+        "remaining_spots": data.player_count
     }).to_string()
 }
 
@@ -104,10 +124,10 @@ fn join_team(data: JoinTeam, teams: &Arc<Mutex<HashMap<String, Team>>>) -> Strin
     let mut teams = teams.lock().unwrap();
     for team in teams.values_mut() {
         if team.access_code == data.access_code {
-            if team.players.len() as u8 >= team.player_count {
+            if team.players.len() as u8 >= team.max_players {
                 return json!({
                     "status": "ERROR",
-                    "message": "L'équipe est déjà complète"
+                    "message": "L'équipe est complète"
                 }).to_string();
             }
             if team.players.contains(&data.player_name) {
@@ -117,9 +137,11 @@ fn join_team(data: JoinTeam, teams: &Arc<Mutex<HashMap<String, Team>>>) -> Strin
                 }).to_string();
             }
             team.players.push(data.player_name.clone());
+            let remaining_spots = team.max_players - team.players.len() as u8;
             return json!({
                 "status": "OK",
-                "message": "Joueur ajouté"
+                "message": "Joueur ajouté",
+                "remaining_spots": remaining_spots
             }).to_string();
         }
     }
@@ -132,18 +154,14 @@ fn join_team(data: JoinTeam, teams: &Arc<Mutex<HashMap<String, Team>>>) -> Strin
 
 fn view_team(data: ViewTeam, teams: &Arc<Mutex<HashMap<String, Team>>>) -> String {
     let teams = teams.lock().unwrap();
-    
     if let Some(team) = teams.get(&data.team_name) {
         return json!({
             "status": "OK",
-            "team_name": team.name,
             "players": team.players
         }).to_string();
     }
-
     json!({
         "status": "ERROR",
-        "message": "Équipe non trouvée"
+        "message": "Équipe introuvable"
     }).to_string()
 }
-
