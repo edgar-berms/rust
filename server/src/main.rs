@@ -21,6 +21,7 @@ struct Team {
     players: Vec<String>,
     max_players: u8,
     created_at: Instant,
+    ready: bool,
 }
 
 fn main() -> std::io::Result<()> {
@@ -41,7 +42,7 @@ fn main() -> std::io::Result<()> {
             let mut teams = teams_clone.lock().unwrap();
             teams.retain(|_, team| {
                 let elapsed = team.created_at.elapsed().as_secs();
-                if elapsed < 180 {
+                if elapsed < 300 {
                     true
                 } else {
                     println!("🕒 Timeout: Suppression de l'équipe {}", team.name);
@@ -97,6 +98,8 @@ fn handle_client(mut stream: TcpStream, teams: Arc<Mutex<HashMap<String, Team>>>
         Message::JoinTeam(data) => join_team(data, &teams),
         Message::ViewTeam(data) => view_team(data, &teams),
         Message::GetMaze => get_maze(&maze),
+        Message::SetTeamReady(data) => set_team_ready(data, &teams),
+        Message::StartGame(data) => start_game(data, &teams),
     };
 
     writeln!(stream, "{}", response).unwrap();
@@ -119,6 +122,7 @@ fn register_team(data: RegisterTeam, teams: &Arc<Mutex<HashMap<String, Team>>>) 
         players: Vec::new(),
         max_players: data.player_count,
         created_at: Instant::now(),
+        ready: false,
     });
 
     json!({
@@ -133,6 +137,9 @@ fn join_team(data: JoinTeam, teams: &Arc<Mutex<HashMap<String, Team>>>) -> Strin
     let mut teams = teams.lock().unwrap();
     for team in teams.values_mut() {
         if team.access_code == data.access_code {
+            if team.ready {
+                return json!({"status": "ERROR", "message": "L'équipe est déjà prête"}).to_string();
+            }
             if team.players.len() as u8 >= team.max_players {
                 return json!({
                     "status": "ERROR",
@@ -166,13 +173,11 @@ fn view_team(data: ViewTeam, teams: &Arc<Mutex<HashMap<String, Team>>>) -> Strin
     if let Some(team) = teams.get(&data.team_name) {
         return json!({
             "status": "OK",
-            "players": team.players
+            "players": team.players,
+            "ready": team.ready
         }).to_string();
     }
-    json!({
-        "status": "ERROR",
-        "message": "Équipe introuvable"
-    }).to_string()
+    json!({"status": "ERROR", "message": "Équipe introuvable"}).to_string()
 }
 
 fn get_maze(maze: &Arc<Mutex<Maze>>) -> String {
@@ -184,4 +189,49 @@ fn get_maze(maze: &Arc<Mutex<Maze>>) -> String {
         "status": "OK",
         "maze": maze.to_string()
     }).to_string()
+}
+
+fn start_game(data: ViewTeam, teams: &Arc<Mutex<HashMap<String, Team>>>) -> String {
+    let teams = teams.lock().unwrap();
+    if let Some(team) = teams.get(&data.team_name) {
+        if team.ready {
+            json!({
+                "status": "OK",
+                "message": "La partie démarre !"
+            }).to_string()
+        } else {
+            json!({
+                "status": "ERROR",
+                "message": "L'équipe n'est pas encore prête"
+            }).to_string()
+        }
+    } else {
+        json!({
+            "status": "ERROR",
+            "message": "Équipe introuvable"
+        }).to_string()
+    }
+}
+
+fn set_team_ready(data: ViewTeam, teams: &Arc<Mutex<HashMap<String, Team>>>) -> String {
+    let mut teams = teams.lock().unwrap();
+    if let Some(team) = teams.get_mut(&data.team_name) {
+        if team.players.len() == team.max_players as usize {
+            team.ready = true;
+            json!({
+                "status": "OK",
+                "message": "L'équipe est prête pour la partie"
+            }).to_string()
+        } else {
+            json!({
+                "status": "ERROR",
+                "message": "L'équipe n'a pas encore assez de joueurs"
+            }).to_string()
+        }
+    } else {
+        json!({
+            "status": "ERROR",
+            "message": "Équipe introuvable"
+        }).to_string()
+    }
 }

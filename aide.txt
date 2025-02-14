@@ -16,3 +16,9 @@ echo '{"type": "ViewTeam", "team_name": "Les BG"}' | ncat -v localhost 8778
 
 Afficher le labyrinthe :
 echo '{"type": "GetMaze"}' | ncat 127.0.0.1 8778
+
+Rendre une équipe prête :
+echo '{"type": "SetTeamReady", "team_name": "Les BG"}' | ncat -v localhost 8778
+
+Démarrer la partie :
+echo '{"type":"StartGame","team_name":"Les BG"}' | ncat localhost 8778
