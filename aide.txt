@@ -1,8 +1,5 @@
 Installer NetCat
 
-Tester la co :
-echo {"Connect": {"team_name": "Rustaceans"}} | ncat localhost 8778
-
 Créer l'équipe :
 echo '{"type": "RegisterTeam", "team_name": "Les BG", "player_count": 3}' | ncat -v localhost 8778
 

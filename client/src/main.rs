@@ -1,8 +1,8 @@
-mod radar;
-mod text;
+// mod encode_decode_radar;
+// mod encode_decode_text;
 //use text::{encode, decode};
-mod maze;
-use maze::{encode_maze, decode_maze};
+// mod encode_decode_maze;
+// use encode_decode_maze::{encode_maze, decode_maze};
 //use std::net::TcpStream;
 //use std::io::{Write, Read};
 //use base64::{engine::general_purpose::STANDARD, Engine};
