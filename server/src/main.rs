@@ -14,6 +14,8 @@ use model::{JoinTeam, Message, RegisterTeam, ViewTeam};
 mod maze;
 use maze::Maze;
 
+use common::encode_decode_maze::encode_maze;
+
 #[derive(Debug)]
 struct Team {
     name: String,
@@ -192,12 +194,20 @@ fn get_maze(maze: &Arc<Mutex<Maze>>) -> String {
 }
 
 fn start_game(data: ViewTeam, teams: &Arc<Mutex<HashMap<String, Team>>>) -> String {
-    let teams = teams.lock().unwrap();
-    if let Some(team) = teams.get(&data.team_name) {
+    let mut teams = teams.lock().unwrap();
+    if let Some(team) = teams.get_mut(&data.team_name) {
         if team.ready {
+            
+            let mut maze = Maze::new(10, 10);
+            maze.place_exit();
+            let maze_str = maze.to_string();
+
+            let encoded_maze = encode_maze(&maze_str);
+
             json!({
                 "status": "OK",
-                "message": "La partie démarre !"
+                "message": "La partie démarre !",
+                "encoded_maze": encoded_maze
             }).to_string()
         } else {
             json!({
