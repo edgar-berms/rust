@@ -209,7 +209,7 @@ fn start_game(data: ViewTeam, teams: &Arc<Mutex<HashMap<String, Team>>>) -> Stri
     if let Some(team) = teams.get_mut(&data.team_name) {
         if team.ready {
             
-            let mut maze = Maze::new(10, 10);
+            let mut maze = Maze::new(25, 25);
             maze.place_exit();
             let players_positions = maze.place_players(&teams.iter().map(|(name, team)| {
                 (name.clone(), team.players.clone())
