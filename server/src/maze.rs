@@ -1,6 +1,7 @@
 use rand::seq::SliceRandom;
 use rand::{Rng, SeedableRng};
 use rand::rngs::StdRng;
+use std::collections::HashMap;
 
 #[derive(Clone, Copy, PartialEq)]
 enum Cell {
@@ -87,35 +88,68 @@ impl Maze {
         }
     }
 
-    pub fn display(&self) {
-        for row in &self.grid {
-            for &cell in row {
-                match cell {
-                    Cell::Wall => print!("1"),
-                    Cell::Path => print!("0"),
-                    Cell::Exit => print!("E"),
+    pub fn display(&self, players_positions: &HashMap<String, Vec<(usize, usize)>>) {
+        for (y, row) in self.grid.iter().enumerate() {
+            for (x, &cell) in row.iter().enumerate() {
+                if let Some((team, _)) = players_positions.iter().find(|(_, positions)| positions.contains(&(x, y))) {
+                    print!("{}", team.chars().next().unwrap());
+                } else {
+                    match cell {
+                        Cell::Wall => print!("1"),
+                        Cell::Path => print!("0"),
+                        Cell::Exit => print!("E"),
+                    }
                 }
             }
             println!();
         }
     }
 
-    pub fn to_string(&self) -> String {
-        self.grid.iter()
-            .map(|row| row.iter()
-                .map(|&cell| {
-                    if cell == Cell::Wall {
-                        '1'
-                    } else if cell == Cell::Path {
-                        '0'
-                    } else {
-                        'E'
-                    }
-                })
-                .collect::<String>()
-            )
+    pub fn to_string(&self, players_positions: &HashMap<String, Vec<(usize, usize)>>) -> String {
+        self.grid.iter().enumerate()
+            .map(|(y, row)| {
+                row.iter().enumerate()
+                    .map(|(x, &cell)| {
+                        if let Some((team, _)) = players_positions.iter().find(|(_, positions)| positions.contains(&(x, y))) {
+                            team.chars().next().unwrap()
+                        } else {
+                            match cell {
+                                Cell::Wall => '1',
+                                Cell::Path => '0',
+                                Cell::Exit => 'E',
+                            }
+                        }
+                    })
+                    .collect::<String>()
+            })
             .collect::<Vec<String>>()
             .join("\n")
-    }
+    }    
+
+    pub fn place_players(&self, teams: &HashMap<String, Vec<String>>) -> HashMap<String, Vec<(usize, usize)>> {
+        let mut rng = rand::thread_rng();
+        let mut positions_map = HashMap::new();
+        let mut occupied_positions = Vec::new();
+    
+        for (team_name, players) in teams {
+            let mut team_positions = Vec::new();
+            
+            for _ in players {
+                loop {
+                    let x = rng.gen_range(1..self.width - 1);
+                    let y = rng.gen_range(1..self.height - 1);
+    
+                    if self.grid[y][x] == Cell::Path && !occupied_positions.contains(&(x, y)) {
+                        occupied_positions.push((x, y));
+                        team_positions.push((x, y));
+                        break;
+                    }
+                }
+            }
+            positions_map.insert(team_name.clone(), team_positions);
+        }
+    
+        positions_map
+    }    
     
 }

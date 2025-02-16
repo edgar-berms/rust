@@ -43,12 +43,17 @@ fn main() -> std::io::Result<()> {
             thread::sleep(Duration::from_secs(10));
             let mut teams = teams_clone.lock().unwrap();
             teams.retain(|_, team| {
-                let elapsed = team.created_at.elapsed().as_secs();
-                if elapsed < 300 {
+                if team.ready {
                     true
-                } else {
-                    println!("🕒 Timeout: Suppression de l'équipe {}", team.name);
-                    false
+                }
+                else{
+                    let elapsed = team.created_at.elapsed().as_secs();
+                    if elapsed < 300 {
+                        true
+                    } else {
+                        println!("🕒 Timeout: Suppression de l'équipe {}", team.name);
+                        false
+                    }
                 }
             });
         }
@@ -99,7 +104,7 @@ fn handle_client(mut stream: TcpStream, teams: Arc<Mutex<HashMap<String, Team>>>
         Message::RegisterTeam(data) => register_team(data, &teams),
         Message::JoinTeam(data) => join_team(data, &teams),
         Message::ViewTeam(data) => view_team(data, &teams),
-        Message::GetMaze => get_maze(&maze),
+        Message::GetMaze => get_maze(&maze, &teams),
         Message::SetTeamReady(data) => set_team_ready(data, &teams),
         Message::StartGame(data) => start_game(data, &teams),
     };
@@ -182,14 +187,20 @@ fn view_team(data: ViewTeam, teams: &Arc<Mutex<HashMap<String, Team>>>) -> Strin
     json!({"status": "ERROR", "message": "Équipe introuvable"}).to_string()
 }
 
-fn get_maze(maze: &Arc<Mutex<Maze>>) -> String {
+fn get_maze(maze: &Arc<Mutex<Maze>>, teams: &Arc<Mutex<HashMap<String, Team>>>) -> String {
     let maze = maze.lock().unwrap();
+    let teams = teams.lock().unwrap();
 
-    maze.display();
+    let players_positions = maze.place_players(&teams.iter().map(|(name, team)| {
+        (name.clone(), team.players.clone())
+    }).collect());
+
+    maze.display(&players_positions);
     
     json!({
         "status": "OK",
-        "maze": maze.to_string()
+        "maze": maze.to_string(&players_positions),
+        "players_positions": players_positions
     }).to_string()
 }
 
@@ -200,7 +211,11 @@ fn start_game(data: ViewTeam, teams: &Arc<Mutex<HashMap<String, Team>>>) -> Stri
             
             let mut maze = Maze::new(10, 10);
             maze.place_exit();
-            let maze_str = maze.to_string();
+            let players_positions = maze.place_players(&teams.iter().map(|(name, team)| {
+                (name.clone(), team.players.clone())
+            }).collect());
+            
+            let maze_str = maze.to_string(&players_positions);
 
             let encoded_maze = encode_maze(&maze_str);
 

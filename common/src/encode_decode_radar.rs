@@ -1,6 +1,5 @@
 //use base64::{engine::general_purpose::STANDARD, Engine};
 
-// TODO edgar penser a remove les pub une fois que tous les test auront été fait
 #[derive(Debug)]
 pub enum Passage {
     Undefined,
